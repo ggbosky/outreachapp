@@ -2,6 +2,9 @@
 # Start v produkci: schéma DB → worker na pozadí → Next.js server
 set -euo pipefail
 
+# Hostingy jako Railway dávají jen DATABASE_URL – pro migrace použijeme stejné spojení
+export DIRECT_URL="${DIRECT_URL:-${DATABASE_URL:-}}"
+
 npx prisma db push --skip-generate
 
 if [ "${RUN_WORKER:-true}" = "true" ]; then

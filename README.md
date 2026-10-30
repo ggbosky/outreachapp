@@ -23,16 +23,24 @@ Secrets → New secret** (`ANTHROPIC_API_KEY`, `SMTP_USER`, `SMTP_PASS`, `SMTP_F
 > Codespace se po 30 minutách nečinnosti uspí (data zůstanou) a bezplatný tarif má 60 hodin běhu měsíčně.
 > Pro trvalý provoz použij hosting níže.
 
-## Trvalý hosting (Railway / Render / VPS)
+## Trvalý hosting – Railway (doporučeno, ~5 $ měsíčně)
 
 Repozitář obsahuje `Dockerfile` (Node + Chromium pro scraper). Kontejner při startu vytvoří tabulky,
 spustí worker (odesílání fronty + stahování odpovědí) a webovou aplikaci.
 
-- **Railway:** New Project → *Deploy from GitHub repo* → vyber repozitář a větev → do *Variables* vlož hodnoty z `.env.example`
-  (databáze ze Supabase, API klíče) → *Settings → Networking → Generate Domain*.
-- **Render:** New → *Web Service* → repozitář → Runtime *Docker* → Environment variables jako výše. Kvůli Chromiu
-  doporučuji tarif s aspoň 1 GB RAM.
-- Proměnná `RUN_WORKER=false` vypne worker v kontejneru (pokud ho chceš pouštět zvlášť).
+1. Založ účet na [railway.com](https://railway.com) přes **Login with GitHub**.
+2. **New Project → Deploy from GitHub repo →** `ggbosky/outreachapp`. V *Settings → Source* nastav větev `claude/kind-wozniak-f7cazb`.
+3. V projektu klikni **+ Create → Database → PostgreSQL** (databáze je součástí, Supabase není potřeba).
+4. U služby aplikace otevři **Variables** a přidej:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `APP_PASSWORD` = heslo pro vstup do aplikace (**povinné**, jinak by aplikace byla veřejná)
+   - `ANTHROPIC_API_KEY` = klíč z [console.anthropic.com](https://console.anthropic.com) (pro AI research a psaní e-mailů)
+   - `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` = Gmail adresa, App Password a „Jméno <adresa>“ (pro odesílání a čtení odpovědí)
+5. **Settings → Networking → Generate Domain** → dostaneš adresu typu `outreachapp-production.up.railway.app`.
+6. Otevři ji, zadej heslo (jméno libovolné) a aplikace jede. Po každém pushi na GitHub se sama aktualizuje.
+
+Další volitelné proměnné (limity odesílání, Google/Brave vyhledávání…) jsou v `.env.example`.
+`RUN_WORKER=false` vypne worker v kontejneru. Stejný Dockerfile funguje i na Renderu, Fly.io nebo VPS.
 
 ## Lokální spuštění
 
