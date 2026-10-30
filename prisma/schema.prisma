@@ -1,0 +1,177 @@
+// Prisma schéma pro Outreach CRM (Supabase / PostgreSQL)
+// DATABASE_URL = Supabase pooler (port 6543, ?pgbouncer=true)
+// DIRECT_URL   = přímé spojení (port 5432) – používá se pro migrace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum LeadStatus {
+  NEW
+  RESEARCHED
+  CONTACTED
+  REPLIED
+  CONVERTED
+  REJECTED
+}
+
+enum Sentiment {
+  INTERESTED
+  NOT_INTERESTED
+  PRICE_INQUIRY
+  QUESTION
+  NEUTRAL
+}
+
+enum Channel {
+  EMAIL
+  LINKEDIN
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum MessageStatus {
+  DRAFT
+  QUEUED
+  SENT
+  FAILED
+  CANCELLED
+  RECEIVED
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  name          String
+  website       String?    @unique
+  email         String?
+  phone         String?
+  linkedinUrl   String?    @map("linkedin_url")
+  status        LeadStatus @default(NEW)
+  sentiment     Sentiment?
+
+  /// Výsledek AI deep researche (viz src/lib/ai/schemas.ts → ResearchResult)
+  researchNotes Json?      @map("research_notes")
+
+  // Data ze scraperu
+  ico            String?
+  address        String?
+  industry       String?
+  source         String?   // google | duckduckgo | ares | firmy | manual
+  keyword        String?   // dotaz, kterým byl lead nalezen
+  emails         String[]  @default([])
+  phones         String[]  @default([])
+  socials        Json?     // { facebook, instagram, linkedin, x, youtube }
+  scrapedContent String?   @map("scraped_content") @db.Text
+  scrapedPages   String[]  @default([]) @map("scraped_pages")
+  scrapedAt      DateTime? @map("scraped_at")
+  researchedAt   DateTime? @map("researched_at")
+
+  campaignId String?   @map("campaign_id")
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  messages   Message[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([campaignId])
+  @@map("leads")
+}
+
+model Campaign {
+  id           String         @id @default(cuid())
+  name         String
+  /// Popis tvé služby, cílovky a tónu – posílá se Claudovi jako kontext
+  systemPrompt String         @map("system_prompt") @db.Text
+  channels     Channel[]      @default([EMAIL])
+  status       CampaignStatus @default(DRAFT)
+
+  senderName        String? @map("sender_name")
+  /// Rozestupy follow-upů ve dnech od předchozí zprávy
+  followUpDelayDays Int     @default(3) @map("follow_up_delay_days")
+
+  leads    Lead[]
+  messages Message[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("campaigns")
+}
+
+model Message {
+  id         String           @id @default(cuid())
+  leadId     String           @map("lead_id")
+  lead       Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  campaignId String?          @map("campaign_id")
+  campaign   Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  channel   Channel
+  direction MessageDirection @default(OUTBOUND)
+  /// 0 = první zpráva, 1 = follow-up #1, 2 = follow-up #2
+  step      Int              @default(0)
+  subject   String?
+  content   String           @db.Text
+  status    MessageStatus    @default(DRAFT)
+
+  /// Kdy se má zpráva nejdříve odeslat (fronta)
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+
+  /// SMTP Message-ID (pro párování odpovědí přes In-Reply-To)
+  externalId String?    @unique @map("external_id")
+  inReplyTo  String?    @map("in_reply_to")
+  fromEmail  String?    @map("from_email")
+  sentiment  Sentiment?
+  /// AI shrnutí příchozí odpovědi
+  summary    String?    @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status, scheduledAt])
+  @@index([leadId])
+  @@map("messages")
+}
+
+model ScrapeJob {
+  id         String    @id @default(cuid())
+  query      String
+  location   String?
+  sources    String[]
+  maxResults Int       @default(20) @map("max_results")
+  status     JobStatus @default(PENDING)
+  found      Int       @default(0)
+  created    Int       @default(0)
+  log        String[]  @default([])
+  error      String?
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  finishedAt DateTime? @map("finished_at")
+
+  @@map("scrape_jobs")
+}
