@@ -7,7 +7,34 @@ s rozestupy a stáhne odpovědi včetně AI analýzy sentimentu.
 **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Shadcn UI · Supabase (PostgreSQL) + Prisma ·
 Playwright + Cheerio · Nodemailer + ImapFlow · Anthropic SDK
 
-## Rychlý start
+## Spuštění online přes GitHub Codespaces (doporučeno pro vyzkoušení a úpravy)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ggbosky/outreachapp?ref=claude/kind-wozniak-f7cazb)
+
+1. Klikni na tlačítko výše (nebo na GitHubu **Code → Codespaces → Create codespace** na větvi `claude/kind-wozniak-f7cazb`).
+2. Počkej 3–5 minut. Codespace sám nainstaluje balíčky, Chromium a vlastní PostgreSQL databázi a spustí aplikaci.
+3. Aplikace se otevře v nové záložce (případně záložka **PORTS** → port 3000 → ikona glóbu).
+4. Kód upravuješ přímo v editoru v prohlížeči, změny se v aplikaci projeví hned.
+
+**API klíče** (Anthropic, SMTP…) nastav jednou jako Codespaces secrets: GitHub → **Settings → Codespaces →
+Secrets → New secret** (`ANTHROPIC_API_KEY`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`…) a povol je pro repozitář
+`ggbosky/outreachapp`. Případně je dopiš do souboru `.env` přímo v Codespace.
+
+> Codespace se po 30 minutách nečinnosti uspí (data zůstanou) a bezplatný tarif má 60 hodin běhu měsíčně.
+> Pro trvalý provoz použij hosting níže.
+
+## Trvalý hosting (Railway / Render / VPS)
+
+Repozitář obsahuje `Dockerfile` (Node + Chromium pro scraper). Kontejner při startu vytvoří tabulky,
+spustí worker (odesílání fronty + stahování odpovědí) a webovou aplikaci.
+
+- **Railway:** New Project → *Deploy from GitHub repo* → vyber repozitář a větev → do *Variables* vlož hodnoty z `.env.example`
+  (databáze ze Supabase, API klíče) → *Settings → Networking → Generate Domain*.
+- **Render:** New → *Web Service* → repozitář → Runtime *Docker* → Environment variables jako výše. Kvůli Chromiu
+  doporučuji tarif s aspoň 1 GB RAM.
+- Proměnná `RUN_WORKER=false` vypne worker v kontejneru (pokud ho chceš pouštět zvlášť).
+
+## Lokální spuštění
 
 ```bash
 npm install
@@ -15,12 +42,7 @@ cp .env.example .env            # vyplň DATABASE_URL, DIRECT_URL, ANTHROPIC_API
 npm run playwright:install      # stáhne Chromium pro scraper (jednorázově)
 npm run db:push                 # vytvoří tabulky v Supabase
 npm run dev                     # http://localhost:3000
-```
-
-V druhém terminálu spusť worker, který odesílá frontu a stahuje odpovědi:
-
-```bash
-npm run worker                  # smyčka každých WORKER_INTERVAL_SECONDS
+npm run worker                  # v druhém terminálu: odesílání fronty + stahování odpovědí
 ```
 
 ### Supabase

@@ -1,0 +1,21 @@
+{
+  "name": "Outreach CRM",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Outreach CRM", "onAutoForward": "openBrowser" }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postAttachCommand": "npm run dev",
+  "hostRequirements": { "cpus": 2, "memory": "4gb" },
+  "customizations": {
+    "vscode": {
+      "extensions": ["Prisma.prisma", "bradlc.vscode-tailwindcss", "dbaeumer.vscode-eslint"]
+    },
+    "codespaces": {
+      "openFiles": ["README.md"]
+    }
+  }
+}

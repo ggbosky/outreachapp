@@ -12,8 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "scrape": "tsx --env-file=.env scripts/scrape.ts",
-    "worker": "tsx --env-file=.env scripts/worker.ts",
+    "scrape": "tsx --env-file-if-exists=.env scripts/scrape.ts",
+    "worker": "tsx --env-file-if-exists=.env scripts/worker.ts",
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
@@ -52,5 +52,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
